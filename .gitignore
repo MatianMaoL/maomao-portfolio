@@ -1,0 +1,9 @@
+node_modules/
+.env
+.DS_Store
+Thumbs.db
+*.log
+resourse/
+.claude/
+DESIGN.md
+DESIGN-preview.html

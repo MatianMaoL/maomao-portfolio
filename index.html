@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MaoMaoAI万事屋 — AIGC 数字视觉定制</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ================================================================
+   DESIGN TOKENS — per DESIGN.md (Digital Flagship)
+   ================================================================ */
+:root {
+  --color-bg: #060616;
+  --color-bg-alt: #060616;
+  --color-surface-dark: #1F1F22;
+  --color-surface-light: #F9F8F9;
+  --color-text: #FFFFFF;
+  --color-text-muted: #82828A;
+  --color-text-light: #DDDDDD;
+  --color-accent: #C1FD3A;
+  --color-accent-hover: #F9F8F9;
+  --color-border: #1C1C2B;
+  --color-border-muted: #82828A80;
+
+  /* Typography — DESIGN.md hierarchy */
+  --font-display: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  --font-body: 'Noto Sans SC', 'Inter', system-ui, sans-serif;
+  --font-nav: 'Inter', 'Noto Sans SC', sans-serif;
+
+  /* Spacing — DESIGN.md spacing system */
+  --space-xs: 8px;
+  --space-sm: 16px;
+  --space-md: 24px;
+  --space-lg: 40px;
+  --space-xl: 55px;
+  --space-2xl: 100px;
+
+  /* Radius — DESIGN.md border radius scale */
+  --radius-sm: 3px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Container */
+  --max-w: 1140px;
+
+  /* Animation — DESIGN.md patterns */
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --duration: 0.3s;
+}
+
+/* ================================================================
+   RESET & BASE — DESIGN.md: anti-aliased, smooth scroll
+   ================================================================ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5em;
+  letter-spacing: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+img { max-width: 100%; display: block; }
+a { color: var(--color-text); text-decoration: none; transition: color var(--duration); }
+ul { list-style: none; }
+
+/* ================================================================
+   PRELOADER — DESIGN.md: #C1FD3A bg, progress bar, 2500ms
+   ================================================================ */
+.preloader {
+  position: fixed;
+  inset: 0;
+  background: var(--color-accent);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.6s var(--ease);
+}
+.preloader.done {
+  opacity: 0;
+  pointer-events: none;
+}
+.preloader-bar {
+  width: 120px;
+  height: 3px;
+  background: var(--color-bg);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.preloader-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0%;
+  background: var(--color-bg);
+  animation: preloaderProgress 2.5s var(--ease) forwards;
+}
+@keyframes preloaderProgress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+/* ================================================================
+   LAYOUT — DESIGN.md: max-width 1140px, block-gap 24px
+   ================================================================ */
+.container {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--space-sm);
+}
+@media(min-width:768px) {
+  .container { padding: 0 50px; }
+}
+
+/* ================================================================
+   HEADER / NAV — DESIGN.md specs:
+   sticky top z-9999, #060616 bg, 1px #1C1C2B border,
+   padding 20px 50px, nav 12px/500/uppercase/0.05em spacing
+   ================================================================ */
+.site-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  background-color: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  padding: 20px 0 20px;
+}
+.header-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--space-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+@media(min-width:768px) {
+  .header-inner { padding: 0 50px; }
+}
+
+/* Logo — DESIGN.md: accent color for brand mark */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text);
+}
+.logo-img {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+.logo .accent { color: var(--color-accent); }
+
+/* Desktop nav — DESIGN.md: 12px, 500, uppercase, 0.05em, 40px gap */
+.nav-desktop {
+  display: none;
+  align-items: center;
+  gap: var(--space-lg);
+}
+@media(min-width:768px) { .nav-desktop { display: flex; } }
+.nav-desktop a {
+  font-family: var(--font-nav);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text);
+  transition: color var(--duration);
+}
+.nav-desktop a:hover { color: #FFFFFFB3; }
+
+/* Header CTA — DESIGN.md: accent bg, dark text, 12px, 500, pill */
+.header-cta {
+  display: none;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-family: var(--font-nav);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  transition: background var(--duration), color var(--duration);
+}
+@media(min-width:768px) { .header-cta { display: inline-flex; } }
+.header-cta:hover {
+  background: var(--color-accent-hover);
+  color: var(--color-bg);
+}
+
+/* Mobile toggle */
+.mobile-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+}
+@media(min-width:768px) { .mobile-btn { display: none; } }
+.mobile-btn span {
+  width: 22px; height: 2px;
+  background: var(--color-text);
+  border-radius: 1px;
+  transition: all var(--duration);
+}
+
+/* Mobile menu — DESIGN.md: 100vh, 0.5s ease scaleY */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--color-bg);
+  z-index: 9998;
+  padding: 100px var(--space-sm) 40px;
+  flex-direction: column;
+  gap: 0;
+}
+.mobile-nav.open { display: flex; }
+.mobile-nav a {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.mobile-nav a:hover { color: var(--color-accent); }
+
+/* ================================================================
+   HERO — DESIGN.md:
+   25vw hero type, weight 900, line-height 0.8em,
+   negative margins for compression, parallax,
+   slideshow bg (200ms fade), #C1FD3A pill CTA
+   ================================================================ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hero slideshow bg — DESIGN.md: fade, 200ms, loop */
+.hero-slideshow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hero-slideshow img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.6s var(--ease);
+}
+.hero-slideshow img.active { opacity: 0.15; }
+
+/* Parallax wrap — DESIGN.md: speed 0.2 */
+.hero-parallax {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  will-change: transform;
+}
+
+.hero-content {
+  padding: 0 var(--space-sm) var(--space-2xl);
+}
+@media(min-width:768px) {
+  .hero-content { padding: 0 50px var(--space-2xl); }
+}
+
+/* Hero label — DESIGN.md: 10px, uppercase */
+.hero-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-accent);
+  margin-bottom: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-label .dot {
+  width: 6px; height: 6px;
+  background: var(--color-accent);
+  border-radius: 50%;
+}
+
+/* Hero title — DESIGN.md: 25vw/900/0.8em, compression with negative margins */
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 25vw;
+  font-weight: 900;
+  line-height: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  color: var(--color-text);
+  word-spacing: -0.05em;
+}
+.hero-title .line {
+  display: block;
+  margin: -3vw 0 -7.5vw;
+}
+@media(min-width:768px) {
+  .hero-title .line {
+    margin: -1.25vw 0 -3vw;
+  }
+}
+.hero-title .accent { color: var(--color-accent); }
+
+/* Hero desc — DESIGN.md: 16px/400/1.5em Saans */
+.hero-desc {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.5em;
+  color: var(--color-text-light);
+  max-width: 480px;
+  margin-top: var(--space-xl);
+}
+
+/* Hero CTA group */
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-xl);
+}
+
+/* ================================================================
+   BUTTONS — DESIGN.md:
+   Pill 999px, accent bg, dark text, 14px/500/upercase/1px,
+   24px 40px desktop, 20px 36px mobile,
+   hover: bg → #F9F8F9, transition 0.3s
+   ================================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-nav);
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 20px 36px;
+  border: none;
+  cursor: pointer;
+  transition: background var(--duration), color var(--duration);
+  font-family: var(--font-nav);
+}
+@media(min-width:768px) {
+  .btn { padding: 24px 40px; }
+}
+.btn-accent {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+.btn-accent:hover {
+  background: var(--color-accent-hover);
+  color: var(--color-bg);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border-muted);
+}
+.btn-ghost:hover {
+  border-color: var(--color-text);
+}
+
+/* ================================================================
+   SECTION COMMON — DESIGN.md: section gap 55px-100px
+   ================================================================ */
+.section {
+  padding: var(--space-2xl) 0;
+}
+@media(min-width:768px) {
+  .section { padding: 120px 0; }
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-accent);
+  margin-bottom: var(--space-sm);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.5px;
+  line-height: 0.9;
+  margin-bottom: var(--space-md);
+}
+.section-title.lg {
+  font-size: clamp(40px, 14vw, 100px);
+}
+.section-title.md {
+  font-size: clamp(28px, 5.5vw, 56px);
+}
+
+.section-desc {
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.5em;
+  color: var(--color-text-muted);
+  max-width: 520px;
+}
+
+/* ================================================================
+   ABOUT — DESIGN.md: #1F1F22 dark surface, border separators
+   ================================================================ */
+.about {
+  background: var(--color-surface-dark);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+  align-items: center;
+}
+@media(min-width:768px) {
+  .about-grid { grid-template-columns: 1fr 1fr; gap: var(--space-2xl); }
+}
+
+.about-avatar {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+.about-avatar img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.about-text p {
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.5em;
+  color: var(--color-text-light);
+  margin-bottom: var(--space-md);
+}
+
+/* Tags — DESIGN.md: AI tool stack labels */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: var(--space-lg);
+}
+.tag {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+}
+
+/* Stats — DESIGN.md: data display */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  margin-top: var(--space-xl);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-xl);
+}
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--color-accent);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ================================================================
+   WORKS — MIXED LAYOUT
+   ================================================================ */
+
+/* Section: Cards grid — DESIGN.md: border-radius 8-16px */
+.works-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+}
+@media(min-width:768px) {
+  .works-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media(min-width:1024px) {
+  .works-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.card {
+  background: var(--color-surface-dark);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: transform var(--duration) var(--ease), border-color var(--duration);
+  cursor: pointer;
+}
+.card:hover {
+  transform: translateY(-6px);
+  border-color: var(--color-border-muted);
+}
+.card-thumb {
+  aspect-ratio: 4/3;
+  overflow: hidden;
+}
+.card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s var(--ease);
+}
+.card:hover .card-thumb img { transform: scale(1.05); }
+.card-body {
+  padding: var(--space-md);
+}
+.card-tag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-accent);
+  margin-bottom: 8px;
+}
+.card-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.card-desc {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.5em;
+}
+
+/* ================================================================
+   SERVICES — DESIGN.md: dark bg with accent icons
+   ================================================================ */
+.services {
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+.services-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-sm);
+  margin-top: var(--space-xl);
+}
+@media(min-width:768px) {
+  .services-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.service-card {
+  background: var(--color-surface-dark);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  transition: border-color var(--duration);
+}
+.service-card:hover { border-color: var(--color-border-muted); }
+.service-icon {
+  font-size: 32px;
+  margin-bottom: var(--space-md);
+}
+.service-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: var(--space-sm);
+}
+.service-desc {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.7em;
+}
+.service-list {
+  margin-top: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.service-list li {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.service-list li::before {
+  content: '→';
+  color: var(--color-accent);
+  font-size: 11px;
+}
+
+/* ================================================================
+   CONTACT / CTA
+   ================================================================ */
+.contact {
+  border-top: 1px solid var(--color-border);
+}
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+@media(min-width:768px) {
+  .contact-grid { grid-template-columns: 1fr 1fr; gap: var(--space-2xl); }
+}
+.contact-qr {
+  background: var(--color-surface-dark);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  text-align: center;
+}
+.contact-qr img {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+.contact-qr-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.contact-qr-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.social-links {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  transition: all var(--duration);
+}
+.social-link:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* ================================================================
+   FOOTER — DESIGN.md: #1C1C2B border, muted text
+   ================================================================ */
+.site-footer {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-lg) 0;
+}
+.footer-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: center;
+}
+@media(min-width:768px) {
+  .footer-inner { flex-direction: row; justify-content: space-between; }
+}
+.footer-copy {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.footer-links {
+  display: flex;
+  gap: var(--space-lg);
+}
+.footer-links a {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  transition: color var(--duration);
+}
+.footer-links a:hover { color: var(--color-accent); }
+
+/* ================================================================
+   SCROLLBAR — DESIGN.md: 8px, black thumb, #f9f8f9 track
+   ================================================================ */
+::-webkit-scrollbar { width: 8px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--color-surface-light); border-radius: 0; }
+::-webkit-scrollbar-thumb { background: var(--color-bg); border-radius: 0; }
+
+/* ================================================================
+   ANIMATIONS — DESIGN.md: fadeInUp 30px Y, slideInUp 60px Y
+   ================================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ================================================================
+   VIDEO GRID — Dynamic from Feishu
+   ================================================================ */
+.video-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+}
+@media(min-width:768px) {
+  .video-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media(min-width:1024px) {
+  .video-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.video-card {
+  background: var(--color-surface-dark);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: transform var(--duration) var(--ease), border-color var(--duration);
+}
+.video-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-border-muted);
+}
+.video-player-wrap {
+  position: relative;
+  aspect-ratio: 16/9;
+  background: #000;
+}
+.video-player-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.video-player-wrap .play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6,6,22,0.5);
+  cursor: pointer;
+  transition: opacity var(--duration);
+}
+.video-player-wrap .play-overlay:hover { background: rgba(6,6,22,0.3); }
+.video-player-wrap .play-overlay .play-icon {
+  width: 56px; height: 56px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-player-wrap .play-overlay .play-icon::after {
+  content: '';
+  width: 0; height: 0;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-left: 20px solid var(--color-bg);
+  margin-left: 4px;
+}
+.video-info {
+  padding: var(--space-md);
+}
+.video-type {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-accent);
+  margin-bottom: 6px;
+}
+.video-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.video-desc-text {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.video-date {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 8px;
+}
+.video-loading-state {
+  aspect-ratio: 16/9;
+  background: var(--color-surface-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+</style>
+</head>
+<body>
+
+<!-- PRELOADER — DESIGN.md: #C1FD3A bg, progress bar, 2500ms -->
+<div class="preloader" id="preloader">
+  <div class="preloader-bar"></div>
+</div>
+
+<!-- HEADER — DESIGN.md: sticky, #060616, 1px #1C1C2B border -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="#" class="logo">
+      <img src="assets/logo.png" alt="MaoMao" class="logo-img">
+      <span class="accent">MaoMao</span>AI万事屋
+    </a>
+    <nav class="nav-desktop">
+      <a href="#about">关于</a>
+      <a href="#works">作品</a>
+      <a href="#services">服务</a>
+      <a href="#contact">联系</a>
+    </nav>
+    <a href="https://maohub.xyz" target="_blank" class="header-cta">周边定制 →</a>
+    <button class="mobile-btn" id="mobileBtn" aria-label="菜单">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- MOBILE NAV — DESIGN.md: 100vh, scaleY transition -->
+<nav class="mobile-nav" id="mobileNav">
+  <a href="#about" onclick="closeNav()">关于</a>
+  <a href="#works" onclick="closeNav()">作品</a>
+  <a href="#services" onclick="closeNav()">服务</a>
+  <a href="#contact" onclick="closeNav()">联系</a>
+  <div style="margin-top:32px">
+    <a href="https://maohub.xyz" target="_blank" class="btn btn-accent" style="font-size:16px; display:inline-flex;">周边定制 →</a>
+  </div>
+</nav>
+
+<!-- HERO — DESIGN.md: 25vw type, compression, parallax, slideshow bg -->
+<section class="hero" id="hero">
+  <div class="hero-slideshow" id="heroSlideshow">
+    <img src="assets/works/aigc-sample2.png" alt="" class="active">
+    <img src="assets/works/aigc-sample1.png" alt="">
+    <img src="assets/works/aigc-sample3.png" alt="">
+    <img src="assets/works/微信图片_20260506093804_1935_1.jpg" alt="">
+    <img src="assets/works/微信图片_20260506093805_1936_1.jpg" alt="">
+    <img src="assets/works/微信图片_20260506093806_1937_1.jpg" alt="">
+  </div>
+  <div class="hero-parallax" id="heroParallax">
+    <div class="hero-content">
+      <div class="hero-label">
+        <span class="dot"></span>
+        AIGC 数字视觉定制
+      </div>
+      <h1 class="hero-title">
+        <span class="line">Mao</span>
+        <span class="line">Mao<span class="accent">AI</span></span>
+        <span class="line">万事屋</span>
+      </h1>
+      <p class="hero-desc">
+        用 AI 创造数字视觉的无限可能。<br>
+        从视频到实物，为你的想法赋予独特的视觉表达。
+      </p>
+      <div class="hero-actions">
+        <a href="#works" class="btn btn-accent">查看作品 →</a>
+        <a href="https://maohub.xyz" target="_blank" class="btn btn-ghost">周边定制</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT — DESIGN.md: #1F1F22 surface, border separators -->
+<section class="section about" id="about">
+  <div class="container">
+    <div class="about-grid">
+      <div class="about-avatar reveal">
+        <img src="assets/avatar.jpg" alt="MaoMao 数字形象">
+      </div>
+      <div class="about-text reveal">
+        <div class="section-label">关于我</div>
+        <h2 class="section-title md">
+          AI 连接<br>创意与落地
+        </h2>
+        <p>
+          我是 MaoMao，AIGC 视觉创作者与产品主理人。
+          从 AI 生成的视频内容，到线下的吧唧定制实体产品，
+          我在探索 AIGC 从数字到实物的完整链路。
+        </p>
+        <p>
+          目前已在曲靖等地开展线下 AI 定制服务，
+          通过 maohub.xyz 为全国客户提供在线周边定制。
+        </p>
+        <div class="tags">
+          <span class="tag">ChatGPT</span>
+          <span class="tag">Gemini</span>
+          <span class="tag">Midjourney</span>
+          <span class="tag">AI 视频</span>
+          <span class="tag">数字视觉</span>
+          <span class="tag">周边定制</span>
+        </div>
+        <div class="stats">
+          <div>
+            <div class="stat-num">100+</div>
+            <div class="stat-label">服务客户</div>
+          </div>
+          <div>
+            <div class="stat-num">500+</div>
+            <div class="stat-label">AI 作品</div>
+          </div>
+          <div>
+            <div class="stat-num">5+</div>
+            <div class="stat-label">产品品类</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKS — AI Video: full-screen slideshow -->
+<section class="section" id="works-video" style="border-top:1px solid var(--color-border);">
+  <div class="container">
+    <div class="section-label">精选作品 · AI 视频</div>
+    <h2 class="section-title lg reveal">AIGC<br>视频作品</h2>
+    <p class="section-desc reveal">
+      利用 AI 工具创作的视频作品。支持多种风格：二次元、赛博朋克、写实、像素风。
+      <br>数据来自飞书多维表格，实时同步更新。
+    </p>
+    <div id="videoGrid" class="video-grid">
+      <!-- Dynamically loaded from api/videos.json -->
+    </div>
+    <p id="videoLoading" style="color:var(--color-text-muted); font-size:14px; margin-top:24px;">加载视频中...</p>
+  </div>
+</section>
+
+<!-- WORKS — Cards grid: visual design + badge products -->
+<section class="section" id="works">
+  <div class="container">
+    <div class="section-label">精选作品 · 周边与设计</div>
+    <h2 class="section-title lg reveal">作品集</h2>
+    <p class="section-desc reveal">从数字视觉到实体周边，每个项目都是 AI 与创意的碰撞。</p>
+
+    <div class="works-grid">
+      <div class="card reveal">
+        <div class="card-thumb">
+          <img src="assets/works/微信图片_20260506093804_1935_1.jpg" alt="AI 吧唧定制">
+        </div>
+        <div class="card-body">
+          <div class="card-tag">AI 周边产品</div>
+          <div class="card-title">AI 吧唧定制</div>
+          <div class="card-desc">现场 AI 生成 + 打印制作的二次元风格徽章，支持多种风格模板。</div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-thumb">
+          <img src="assets/works/微信图片_20260506093805_1936_1.jpg" alt="冰箱贴定制">
+        </div>
+        <div class="card-body">
+          <div class="card-tag">AI 周边产品</div>
+          <div class="card-title">冰箱贴定制</div>
+          <div class="card-desc">58mm 磁吸冰箱贴，AI 生成图案，现场制作立等可取。</div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-thumb">
+          <img src="assets/works/微信图片_20260506093806_1937_1.jpg" alt="数字形象设计">
+        </div>
+        <div class="card-body">
+          <div class="card-tag">数字视觉</div>
+          <div class="card-title">数字形象设计</div>
+          <div class="card-desc">AI 驱动的个人/品牌数字形象设计，从概念到成品一站式服务。</div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-thumb">
+          <img src="assets/works/微信图片_20260506093807_1938_1.jpg" alt="AI 视觉设计">
+        </div>
+        <div class="card-body">
+          <div class="card-tag">数字视觉</div>
+          <div class="card-title">AI 视觉设计</div>
+          <div class="card-desc">插画、海报、产品视觉包装，AI 赋能创意表达。</div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-thumb">
+          <img src="assets/works/微信图片_20260506093808_1939_1.jpg" alt="摆摊活动">
+        </div>
+        <div class="card-body">
+          <div class="card-tag">线下活动</div>
+          <div class="card-title">曲靖摆摊记录</div>
+          <div class="card-desc">五一期间在曲靖摆摊 4 天，营业额 900+，深受欢迎。</div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-thumb">
+          <img src="assets/works/微信图片_20260506093810_1941_1.jpg" alt="产品展示">
+        </div>
+        <div class="card-body">
+          <div class="card-tag">AI 周边产品</div>
+          <div class="card-title">产品展示</div>
+          <div class="card-desc">吧唧、冰箱贴、镜子等多种周边产品，58mm 精致规格。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES — DESIGN.md: dark bg, accent icons -->
+<section class="section services" id="services">
+  <div class="container">
+    <div style="text-align:center; max-width:600px; margin:0 auto;">
+      <div class="section-label">服务内容</div>
+      <h2 class="section-title md reveal">我能为你做什么</h2>
+      <p class="section-desc reveal" style="margin:0 auto;">从数字内容到实体产品，提供完整的 AIGC 视觉定制解决方案。</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card reveal">
+        <div class="service-icon">🎬</div>
+        <div class="service-name">AI 视频定制</div>
+        <div class="service-desc">利用 AI 工具为客户定制品牌宣传视频、产品展示、社交媒体短视频。</div>
+        <ul class="service-list">
+          <li>品牌宣传片</li>
+          <li>产品展示动画</li>
+          <li>社交媒体短视频</li>
+          <li>多风格切换</li>
+        </ul>
+      </div>
+      <div class="service-card reveal">
+        <div class="service-icon">🎨</div>
+        <div class="service-name">数字视觉设计</div>
+        <div class="service-desc">AI 驱动的视觉内容创作，数字形象设计、插画、海报等。</div>
+        <ul class="service-list">
+          <li>个人/品牌数字形象</li>
+          <li>AI 插画与海报</li>
+          <li>产品视觉包装</li>
+          <li>社交媒体素材</li>
+        </ul>
+      </div>
+      <div class="service-card reveal">
+        <div class="service-icon">🏷️</div>
+        <div class="service-name">AI 周边定制</div>
+        <div class="service-desc">从 AI 生成到实体产品，吧唧、冰箱贴、镜子等周边定制服务。</div>
+        <ul class="service-list">
+          <li>58mm 吧唧/徽章</li>
+          <li>冰箱贴 / 镜子</li>
+          <li>线上线下均可下单</li>
+          <li>批量定制支持</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT — MaoHub + WeChat + Social -->
+<section class="section contact" id="contact">
+  <div class="container">
+    <div class="section-label">联系我</div>
+    <h2 class="section-title md reveal">开始合作</h2>
+    <p class="section-desc reveal" style="margin-bottom:40px;">有想法？无论是 AI 视频定制、数字视觉设计还是周边产品，都可以找我聊聊。</p>
+
+    <div class="contact-grid">
+      <div class="contact-qr reveal">
+        <img src="assets/qrcode-maohub.jpg" alt="MaoHub 二维码">
+        <div class="contact-qr-title">MaoHub 在线定制</div>
+        <div class="contact-qr-desc">扫码访问 maohub.xyz，支持在线下单</div>
+        <a href="https://maohub.xyz" target="_blank" class="btn btn-accent" style="margin-top:8px;">访问 MaoHub →</a>
+      </div>
+
+      <div class="reveal">
+        <div style="margin-bottom:32px;">
+          <div class="contact-qr-title" style="margin-bottom:16px;">联系方式</div>
+          <p style="font-size:14px; color:var(--color-text-muted); line-height:1.7em;">
+            微信：MaoMaoAI万事屋（扫码添加）<br>
+            邮箱：hello@maomao.studio<br>
+            商城：maohub.xyz
+          </p>
+        </div>
+
+        <div class="contact-qr-title" style="margin-bottom:16px;">社交媒体</div>
+        <div class="social-links">
+          <a href="#" class="social-link">小红书</a>
+          <a href="#" class="social-link">抖音</a>
+          <a href="#" class="social-link">B站</a>
+        </div>
+
+        <div style="margin-top:32px;">
+          <a href="https://maohub.xyz" target="_blank" class="btn btn-accent">周边定制 →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER — DESIGN.md: #1C1C2B border -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-copy">© 2026 <span style="color:var(--color-accent)">MaoMao</span>AI万事屋. 用 AI 创造无限可能。</div>
+      <div class="footer-links">
+        <a href="https://maohub.xyz" target="_blank">MaoHub</a>
+        <a href="#works">作品集</a>
+        <a href="#services">服务</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Preloader — DESIGN.md: 2500ms
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('preloader').classList.add('done');
+  }, 2500);
+});
+
+// Mobile nav
+document.getElementById('mobileBtn').addEventListener('click', () => {
+  document.getElementById('mobileNav').classList.toggle('open');
+});
+function closeNav() {
+  document.getElementById('mobileNav').classList.remove('open');
+}
+
+// Hero parallax — DESIGN.md: speed 0.2
+(function() {
+  const parallax = document.getElementById('heroParallax');
+  const hero = document.querySelector('.hero');
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        const heroTop = hero.offsetTop;
+        const heroH = hero.offsetHeight;
+        const winH = window.innerHeight;
+        const scrollY = window.scrollY;
+        const rel = scrollY - heroTop;
+        if (rel > -winH && rel < heroH) {
+          parallax.style.transform = `translateY(${rel * -0.2}px)`;
+        }
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+})();
+
+// Hero slideshow — DESIGN.md: fade, fast cycle
+(function() {
+  const imgs = document.querySelectorAll('#heroSlideshow img');
+  let idx = 0;
+  setInterval(() => {
+    imgs[idx].classList.remove('active');
+    idx = (idx + 1) % imgs.length;
+    imgs[idx].classList.add('active');
+  }, 3000);
+})();
+
+// Load videos from Feishu-generated JSON
+(function() {
+  const grid = document.getElementById('videoGrid');
+  const loading = document.getElementById('videoLoading');
+
+  fetch('api/videos.json')
+    .then(r => r.json())
+    .then(videos => {
+      loading.style.display = 'none';
+      if (!videos || videos.length === 0) {
+        grid.innerHTML = '<p style="color:var(--color-text-muted);">暂无视频作品。</p>';
+        return;
+      }
+
+      videos.forEach(v => {
+        const card = document.createElement('div');
+        card.className = 'video-card reveal';
+        card.innerHTML = `
+          <div class="video-player-wrap">
+            <video preload="metadata" src="${v.video_url || ''}" poster="" playsinline></video>
+            <div class="play-overlay" onclick="this.style.display='none';this.previousElementSibling.play();">
+              <div class="play-icon"></div>
+            </div>
+          </div>
+          <div class="video-info">
+            <div class="video-type">${v.type}</div>
+            <div class="video-title">${v.title}</div>
+            <div class="video-desc-text">${v.description}</div>
+            <div class="video-date">${v.date}</div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      // Re-observe new reveal elements
+      const revealObs = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            revealObs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+      grid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+    })
+    .catch(err => {
+      loading.textContent = '视频加载失败，请稍后刷新。';
+      console.error('Failed to load videos:', err);
+    });
+})();
+
+// Scroll reveal — DESIGN.md: fadeInUp 30px Y
+(function() {
+  const els = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  els.forEach(el => obs.observe(el));
+})();
+</script>
+</body>
+</html>
