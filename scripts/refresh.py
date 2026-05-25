@@ -68,38 +68,35 @@ def list_records(token):
 
 
 def get_download_urls(token, file_tokens):
-    """Get temporary download URLs for multiple file attachments (batch).
-    Try drive API first, fall back to bitable attachment API."""
+    """Get temporary download URLs for file attachments.
+    Try each token individually via the drive media download endpoint."""
     headers = {"Authorization": f"Bearer {token}"}
-
-    # Method 1: drive batch API
-    url = f"{BASE_URL}/drive/v1/medias/batch_get_tmp_download_url"
-    tokens_str = ",".join(file_tokens)
-    resp = requests.get(url, headers=headers, params={
-        "file_tokens": tokens_str,
-        "extra": json.dumps({"bitablePerm": {"tableId": LARK_TABLE_ID, "rev": 1}})
-    }, timeout=30)
-    data = resp.json()
-    print(f"DEBUG drive batch: code={data.get('code')} urls={len(data.get('data',{}).get('tmp_download_urls',[]))}", file=sys.stderr)
-
     url_map = {}
-    if data.get("code") == 0:
-        for item in data.get("data", {}).get("tmp_download_urls", []):
-            url_map[item.get("file_token", "")] = item.get("tmp_download_url", "")
 
-    # If drive API returned empty, try bitable attachment URL for each token
-    missing = [t for t in file_tokens if t not in url_map]
-    if missing:
-        print(f"DEBUG trying bitable attachment API for {len(missing)} tokens", file=sys.stderr)
-        for ft in missing:
-            att_url = f"{BASE_URL}/bitable/v1/apps/{LARK_BASE_TOKEN}/tables/{LARK_TABLE_ID}/attachments/{ft}"
-            att_resp = requests.get(att_url, headers=headers, timeout=30)
-            att_data = att_resp.json()
-            print(f"DEBUG bitable att {ft}: code={att_data.get('code')}", file=sys.stderr)
-            if att_data.get("code") == 0:
-                tmp_url = att_data.get("data", {}).get("tmp_download_url", "")
+    for ft in file_tokens:
+        # Try single file download URL
+        url = f"{BASE_URL}/drive/v1/medias/{ft}"
+        try:
+            resp = requests.get(url, headers=headers, params={
+                "extra": json.dumps({"bitablePerm": {"tableId": LARK_TABLE_ID, "rev": 1}})
+            }, timeout=30)
+            # Response might not be JSON (could be redirect or binary)
+            content_type = resp.headers.get("Content-Type", "")
+            if "json" in content_type:
+                data = resp.json()
+                tmp_url = data.get("data", {}).get("tmp_download_url", "")
                 if tmp_url:
                     url_map[ft] = tmp_url
+                    print(f"DEBUG got URL for {ft}", file=sys.stderr)
+                    continue
+            # If not JSON or no URL, check if response is a redirect
+            if resp.status_code == 302 or resp.is_redirect:
+                url_map[ft] = resp.headers.get("Location", "")
+                print(f"DEBUG got redirect for {ft}", file=sys.stderr)
+                continue
+            print(f"DEBUG no URL for {ft}: status={resp.status_code} ct={content_type}", file=sys.stderr)
+        except Exception as e:
+            print(f"DEBUG error for {ft}: {e}", file=sys.stderr)
 
     return url_map
 
