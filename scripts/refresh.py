@@ -67,22 +67,40 @@ def list_records(token):
     return all_records
 
 
-def get_download_url(token, file_token):
-    """Get temporary download URL for a file attachment."""
+def get_download_urls(token, file_tokens):
+    """Get temporary download URLs for multiple file attachments (batch)."""
     headers = {"Authorization": f"Bearer {token}"}
-    url = f"{BASE_URL}/drive/v1/medias/{file_token}"
+    url = f"{BASE_URL}/drive/v1/medias/batch_get_tmp_download_url"
+    tokens_str = ",".join(file_tokens)
     resp = requests.get(url, headers=headers, params={
+        "file_tokens": tokens_str,
         "extra": json.dumps({"bitablePerm": {"tableId": LARK_TABLE_ID, "rev": 1}})
     }, timeout=30)
     data = resp.json()
     if data.get("code") != 0:
-        print(f"WARN: Failed to get download URL for {file_token}: {data}", file=sys.stderr)
-        return None
-    return data.get("data", {}).get("tmp_download_url")
+        print(f"WARN: batch_get_tmp_download_url failed: {data}", file=sys.stderr)
+        return {}
+    url_map = {}
+    for item in data.get("data", {}).get("tmp_download_urls", []):
+        url_map[item.get("file_token", "")] = item.get("tmp_download_url", "")
+    return url_map
 
 
 def parse_records(token, records):
     """Parse raw records into clean video objects."""
+    # Collect all file tokens first for batch download URL fetch
+    all_tokens = []
+    for rec in records:
+        fields = rec.get("fields", {})
+        for att in fields.get("样本", []):
+            ft = att.get("file_token", "")
+            if ft:
+                all_tokens.append(ft)
+
+    # Batch fetch download URLs
+    print(f"Fetching download URLs for {len(all_tokens)} files...")
+    url_map = get_download_urls(token, all_tokens) if all_tokens else {}
+
     videos = []
     for rec in records:
         fields = rec.get("fields", {})
@@ -90,33 +108,22 @@ def parse_records(token, records):
         if not title:
             continue
 
-        # Parse type (multi-select returns list)
         raw_type = fields.get("类型", [])
         video_type = raw_type[0] if isinstance(raw_type, list) and raw_type else str(raw_type)
 
-        # Parse attachments (样本 field)
         attachments = fields.get("样本", [])
-        video_url = None
-        file_name = ""
-        file_size = 0
-
-        if attachments:
-            att = attachments[0]
-            file_token = att.get("file_token", "")
-            file_name = att.get("name", "")
-            file_size = att.get("size", 0)
-            if file_token:
-                video_url = get_download_url(token, file_token)
+        file_token = attachments[0].get("file_token", "") if attachments else ""
+        video_url = url_map.get(file_token, "")
 
         videos.append({
             "title": title,
             "type": video_type,
             "description": fields.get("描述", ""),
             "date": fields.get("日期", ""),
-            "file_name": file_name,
-            "file_size": file_size,
-            "video_url": video_url or "",
-            "file_token": attachments[0].get("file_token", "") if attachments else ""
+            "file_name": attachments[0].get("name", "") if attachments else "",
+            "file_size": attachments[0].get("size", 0) if attachments else 0,
+            "video_url": video_url,
+            "file_token": file_token
         })
 
     return videos
