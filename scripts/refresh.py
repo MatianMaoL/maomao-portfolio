@@ -77,6 +77,7 @@ def get_download_urls(token, file_tokens):
         "extra": json.dumps({"bitablePerm": {"tableId": LARK_TABLE_ID, "rev": 1}})
     }, timeout=30)
     data = resp.json()
+    print(f"DEBUG batch response code={data.get('code')} msg={data.get('msg','')} urls_count={len(data.get('data',{}).get('tmp_download_urls',[]))}", file=sys.stderr)
     if data.get("code") != 0:
         print(f"WARN: batch_get_tmp_download_url failed: {data}", file=sys.stderr)
         return {}
