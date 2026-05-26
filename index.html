@@ -1223,55 +1223,62 @@ function closeNav() {
   }, 3000);
 })();
 
-// Load videos from Feishu-generated JSON
+// Load videos — inline data + fetch fallback
 (function() {
   const grid = document.getElementById('videoGrid');
   const loading = document.getElementById('videoLoading');
 
-  fetch('api/videos.json')
-    .then(r => r.json())
-    .then(videos => {
-      loading.style.display = 'none';
-      if (!videos || videos.length === 0) {
-        grid.innerHTML = '<p style="color:var(--color-text-muted);">暂无视频作品。</p>';
-        return;
-      }
+  const INLINE_VIDEOS = [
+    {"title":"社畜修仙，开局考核绩效","type":"漫剧","description":"waytoagi-AI漫剧作业","date":"2025-12-28","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/shechu_xiuxian.mp4"},
+    {"title":"巴中奇遇记","type":"文旅动画","description":"巴中文旅宣传","date":"2025-10-28","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/bazhong_qiyu.mp4"},
+    {"title":"机器人Lumos的坚守","type":"故事","description":"百度AI-宇宙生存大赛","date":"2025-10-16","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/lumos_jianshou.mp4"},
+    {"title":"世界城市穿梭","type":"文旅动画","description":"个人试验","date":"2025-10-13","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/shijie_chengshi.mp4"},
+    {"title":"蝶舞・狐吟・鲤游：双姝的轮回绮梦","type":"艺术","description":"个人试验","date":"2025-10-12","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/diewu_huyin.mp4"},
+    {"title":"平镜AI","type":"故事","description":"海螺AI-海龟汤大赛","date":"2025-09-02","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/pingjing_ai.mp4"},
+    {"title":"猫猫带你逛上海奥赛展","type":"文旅动画","description":"个人试验","date":"2025-08-30","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/maomao_aosai.mp4"}
+  ];
 
-      videos.forEach(v => {
-        const card = document.createElement('div');
-        card.className = 'video-card reveal';
-        card.innerHTML = `
-          <div class="video-player-wrap">
-            <video preload="metadata" src="${v.video_url || ''}" poster="" playsinline></video>
-            <div class="play-overlay" onclick="this.style.display='none';this.previousElementSibling.play();">
-              <div class="play-icon"></div>
-            </div>
+  function renderVideos(videos) {
+    loading.style.display = 'none';
+    if (!videos || videos.length === 0) {
+      grid.innerHTML = '<p style="color:var(--color-text-muted);">暂无视频作品。</p>';
+      return;
+    }
+    videos.forEach(v => {
+      const card = document.createElement('div');
+      card.className = 'video-card reveal';
+      card.innerHTML = `
+        <div class="video-player-wrap">
+          <video preload="metadata" src="${v.video_url || ''}" poster="" playsinline></video>
+          <div class="play-overlay" onclick="this.style.display='none';this.previousElementSibling.play();">
+            <div class="play-icon"></div>
           </div>
-          <div class="video-info">
-            <div class="video-type">${v.type}</div>
-            <div class="video-title">${v.title}</div>
-            <div class="video-desc-text">${v.description}</div>
-            <div class="video-date">${v.date}</div>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
-
-      // Re-observe new reveal elements
-      const revealObs = new IntersectionObserver((entries) => {
-        entries.forEach(e => {
-          if (e.isIntersecting) {
-            e.target.classList.add('visible');
-            revealObs.unobserve(e.target);
-          }
-        });
-      }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-      grid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
-    })
-    .catch(err => {
-      loading.textContent = '视频加载失败，请稍后刷新。';
-      console.error('Failed to load videos:', err);
+        </div>
+        <div class="video-info">
+          <div class="video-type">${v.type}</div>
+          <div class="video-title">${v.title}</div>
+          <div class="video-desc-text">${v.description}</div>
+          <div class="video-date">${v.date}</div>
+        </div>
+      `;
+      grid.appendChild(card);
     });
+    const revealObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          revealObs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    grid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+  }
+
+  // Try fetch first, fallback to inline data
+  fetch('api/videos.json')
+    .then(r => r.ok ? r.json() : Promise.reject('fetch failed'))
+    .then(videos => renderVideos(videos))
+    .catch(() => renderVideos(INLINE_VIDEOS));
 })();
 
 // Scroll reveal — DESIGN.md: fadeInUp 30px Y
