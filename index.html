@@ -75,45 +75,41 @@ a { color: var(--color-text); text-decoration: none; transition: color var(--dur
 ul { list-style: none; }
 
 /* ================================================================
-   PRELOADER — DESIGN.md: #C1FD3A bg, progress bar, 2500ms
+   PRELOADER - dark bg with loading spinner
    ================================================================ */
 .preloader {
   position: fixed;
   inset: 0;
-  background: var(--color-accent);
+  background: var(--color-bg);
   z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
+  gap: 20px;
   transition: opacity 0.6s var(--ease);
 }
 .preloader.done {
   opacity: 0;
   pointer-events: none;
 }
-.preloader-bar {
-  width: 120px;
-  height: 3px;
-  background: var(--color-bg);
-  border-radius: 2px;
-  overflow: hidden;
-  position: relative;
+.preloader-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
 }
-.preloader-bar::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 0%;
-  background: var(--color-bg);
-  animation: preloaderProgress 2.5s var(--ease) forwards;
+.preloader-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
-@keyframes preloaderProgress {
-  0% { width: 0%; }
-  100% { width: 100%; }
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
-
 /* ================================================================
    LAYOUT — DESIGN.md: max-width 1140px, block-gap 24px
    ================================================================ */
@@ -438,6 +434,7 @@ ul { list-style: none; }
 }
 .section-title.md {
   font-size: clamp(28px, 5.5vw, 56px);
+  line-height: 1.05;
 }
 
 .section-desc {
@@ -470,11 +467,12 @@ ul { list-style: none; }
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--color-border);
+  max-width: 400px;
+  margin: 0 auto;
 }
 .about-avatar img {
   width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
+  display: block;
 }
 
 .about-text p {
@@ -869,9 +867,10 @@ ul { list-style: none; }
 </head>
 <body>
 
-<!-- PRELOADER — DESIGN.md: #C1FD3A bg, progress bar, 2500ms -->
+<!-- PRELOADER -->
 <div class="preloader" id="preloader">
-  <div class="preloader-bar"></div>
+  <img src="assets/logo.png" alt="MaoMao" class="preloader-logo">
+  <div class="preloader-spinner"></div>
 </div>
 
 <!-- HEADER — DESIGN.md: sticky, #060616, 1px #1C1C2B border -->
@@ -943,7 +942,7 @@ ul { list-style: none; }
   <div class="container">
     <div class="about-grid">
       <div class="about-avatar reveal">
-        <img src="assets/avatar.jpg" alt="MaoMao 数字形象">
+        <img src="assets/maomao.png" alt="MaoMao">
       </div>
       <div class="about-text reveal">
         <div class="section-label">关于我</div>
@@ -951,35 +950,21 @@ ul { list-style: none; }
           AI 连接<br>创意与落地
         </h2>
         <p>
-          我是 MaoMao，AIGC 视觉创作者与产品主理人。
-          从 AI 生成的视频内容，到线下的吧唧定制实体产品，
-          我在探索 AIGC 从数字到实物的完整链路。
+          我是 MaoMao，专注 AIGC 的视觉创作者与产品构建者。
         </p>
         <p>
-          目前已在曲靖等地开展线下 AI 定制服务，
-          通过 maohub.xyz 为全国客户提供在线周边定制。
+          从 AI 视频内容创作，到线下吧唧等实体周边，
+          我正在搭建一条从「生成」到「拥有」的完整路径，
+          让创意不止停留在屏幕中。
+        </p>
+        <p>
+          目前已在曲靖等地落地 AI 定制体验，
+          并通过 maohub.xyz，为全国用户提供个性化创作与实体化服务。
         </p>
         <div class="tags">
-          <span class="tag">ChatGPT</span>
-          <span class="tag">Gemini</span>
-          <span class="tag">Midjourney</span>
-          <span class="tag">AI 视频</span>
+                                        <span class="tag">AI 视频</span>
           <span class="tag">数字视觉</span>
           <span class="tag">周边定制</span>
-        </div>
-        <div class="stats">
-          <div>
-            <div class="stat-num">100+</div>
-            <div class="stat-label">服务客户</div>
-          </div>
-          <div>
-            <div class="stat-num">500+</div>
-            <div class="stat-label">AI 作品</div>
-          </div>
-          <div>
-            <div class="stat-num">5+</div>
-            <div class="stat-label">产品品类</div>
-          </div>
         </div>
       </div>
     </div>
@@ -992,8 +977,7 @@ ul { list-style: none; }
     <div class="section-label">精选作品 · AI 视频</div>
     <h2 class="section-title lg reveal">AIGC<br>视频作品</h2>
     <p class="section-desc reveal">
-      利用 AI 工具创作的视频作品。支持多种风格：二次元、赛博朋克、写实、像素风。
-      <br>数据来自飞书多维表格，实时同步更新。
+      基于 AI 技术创作的视频作品，涵盖剧情叙事、文旅动画与实验性视觉表达。
     </p>
     <div id="videoGrid" class="video-grid">
       <!-- Dynamically loaded from api/videos.json -->
@@ -1073,9 +1057,9 @@ ul { list-style: none; }
           <div class="card-tag">AI 周边产品</div>
           <div class="card-title">产品展示</div>
           <div class="card-desc">吧唧、冰箱贴、镜子等多种周边产品，58mm 精致规格。</div>
-        </div>
       </div>
     </div>
+  </div>
   </div>
 </section>
 
