@@ -317,24 +317,30 @@ ul { list-style: none; }
   border-radius: 50%;
 }
 
-/* Hero title — DESIGN.md: 25vw/900/0.8em, compression with negative margins */
+/* Hero title — large compressed display type */
 .hero-title {
   font-family: var(--font-display);
-  font-size: 25vw;
+  font-size: clamp(56px, 20vw, 240px);
   font-weight: 900;
-  line-height: 0.8em;
+  line-height: 0.9em;
   text-transform: uppercase;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.03em;
   color: var(--color-text);
-  word-spacing: -0.05em;
+  word-spacing: -0.02em;
 }
 .hero-title .line {
   display: block;
-  margin: -3vw 0 -7.5vw;
+  margin: 0;
+  padding: 0.05em 0;
 }
 @media(min-width:768px) {
+  .hero-title {
+    font-size: clamp(100px, 20vw, 240px);
+    line-height: 0.85em;
+  }
   .hero-title .line {
-    margin: -1.25vw 0 -3vw;
+    margin: -0.1em 0;
+    padding: 0;
   }
 }
 .hero-title .accent { color: var(--color-accent); }
