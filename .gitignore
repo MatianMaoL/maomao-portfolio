@@ -7,3 +7,9 @@ resourse/
 .claude/
 DESIGN.md
 DESIGN-preview.html
+videos/
+*.mp4
+feishu_records.json
+feishu_err.txt
+video_url_map.json
+download_urls.json
