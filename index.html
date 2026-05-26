@@ -765,7 +765,7 @@ ul { list-style: none; }
 }
 
 /* ================================================================
-   VIDEO GRID — Dynamic from Feishu
+   VIDEO GRID — with poster, fullscreen, controls
    ================================================================ */
 .video-grid {
   display: grid;
@@ -794,40 +794,55 @@ ul { list-style: none; }
   position: relative;
   aspect-ratio: 16/9;
   background: #000;
+  cursor: pointer;
 }
 .video-player-wrap video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
+.video-player-wrap .poster-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  transition: opacity 0.3s;
+}
+.video-player-wrap .poster-img.hidden { opacity: 0; pointer-events: none; }
 .video-player-wrap .play-overlay {
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6,6,22,0.5);
+  background: rgba(6,6,22,0.25);
   cursor: pointer;
-  transition: opacity var(--duration);
+  transition: background 0.3s;
 }
-.video-player-wrap .play-overlay:hover { background: rgba(6,6,22,0.3); }
+.video-player-wrap .play-overlay:hover { background: rgba(6,6,22,0.15); }
 .video-player-wrap .play-overlay .play-icon {
-  width: 56px; height: 56px;
-  background: var(--color-accent);
+  width: 52px; height: 52px;
+  background: rgba(193,253,58,0.75);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.2s, background 0.2s;
 }
+.video-player-wrap .play-overlay:hover .play-icon { transform: scale(1.1); background: rgba(193,253,58,0.9); }
 .video-player-wrap .play-overlay .play-icon::after {
   content: '';
   width: 0; height: 0;
   border-top: 12px solid transparent;
   border-bottom: 12px solid transparent;
-  border-left: 20px solid var(--color-bg);
-  margin-left: 4px;
+  border-left: 18px solid var(--color-bg);
+  margin-left: 3px;
 }
+.video-player-wrap .play-overlay.hidden { opacity: 0; pointer-events: none; }
 .video-info {
   padding: var(--space-md);
 }
@@ -854,22 +869,67 @@ ul { list-style: none; }
   color: var(--color-text-muted);
   margin-top: 8px;
 }
-.video-loading-state {
-  aspect-ratio: 16/9;
-  background: var(--color-surface-dark);
+/* Fullscreen overlay */
+.video-fullscreen-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: rgba(0,0,0,0.92);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.video-fullscreen-overlay.active { display: flex; }
+.video-fullscreen-overlay video {
+  max-width: 100%;
+  max-height: 85vh;
+  width: 100%;
+  background: #000;
+}
+.video-fullscreen-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 40px; height: 40px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted);
-  font-size: 13px;
+  transition: background 0.2s;
+  z-index: 99999;
 }
+.video-fullscreen-close:hover { background: rgba(255,255,255,0.3); }
+.video-fullscreen-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  width: 100%;
+  max-width: 900px;
+}
+.video-fullscreen-controls button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+.video-fullscreen-controls button:hover { opacity: 1; }
 </style>
 </head>
 <body>
 
 <!-- PRELOADER -->
 <div class="preloader" id="preloader">
-  <img src="assets/logo.png" alt="MaoMao" class="preloader-logo">
+  <img src="assets/logo.png?v=2" alt="MaoMao" class="preloader-logo">
   <div class="preloader-spinner"></div>
 </div>
 
@@ -877,7 +937,7 @@ ul { list-style: none; }
 <header class="site-header">
   <div class="header-inner">
     <a href="#" class="logo">
-      <img src="assets/logo.png" alt="MaoMao" class="logo-img">
+      <img src="assets/logo.png?v=2" alt="MaoMao" class="logo-img">
       <span class="accent">MaoMao</span>AI万事屋
     </a>
     <nav class="nav-desktop">
@@ -1213,19 +1273,19 @@ function closeNav() {
   }, 3000);
 })();
 
-// Load videos — inline data + fetch fallback
+// Load videos - inline data with poster images + fullscreen player
 (function() {
   const grid = document.getElementById('videoGrid');
   const loading = document.getElementById('videoLoading');
 
   const INLINE_VIDEOS = [
-    {"title":"社畜修仙，开局考核绩效","type":"漫剧","description":"waytoagi-AI漫剧作业","date":"2025-12-28","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/shechu_xiuxian.mp4"},
-    {"title":"巴中奇遇记","type":"文旅动画","description":"巴中文旅宣传","date":"2025-10-28","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/bazhong_qiyu.mp4"},
-    {"title":"机器人Lumos的坚守","type":"故事","description":"百度AI-宇宙生存大赛","date":"2025-10-16","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/lumos_jianshou.mp4"},
-    {"title":"世界城市穿梭","type":"文旅动画","description":"个人试验","date":"2025-10-13","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/shijie_chengshi.mp4"},
-    {"title":"蝶舞・狐吟・鲤游：双姝的轮回绮梦","type":"艺术","description":"个人试验","date":"2025-10-12","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/diewu_huyin.mp4"},
-    {"title":"平镜AI","type":"故事","description":"海螺AI-海龟汤大赛","date":"2025-09-02","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/pingjing_ai.mp4"},
-    {"title":"猫猫带你逛上海奥赛展","type":"文旅动画","description":"个人试验","date":"2025-08-30","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/maomao_aosai.mp4"}
+    {"title":"社畜修仙，开局考核绩效","type":"漫剧","description":"waytoagi-AI漫剧作业","date":"2025-12-28","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/shechu_xiuxian.mp4","poster":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/posters/shechu_xiuxian.jpg"},
+    {"title":"巴中奇遇记","type":"文旅动画","description":"巴中文旅宣传","date":"2025-10-28","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/bazhong_qiyu.mp4","poster":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/posters/bazhong_qiyu.jpg"},
+    {"title":"机器人Lumos的坚守","type":"故事","description":"百度AI-宇宙生存大赛","date":"2025-10-16","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/lumos_jianshou.mp4","poster":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/posters/lumos_jianshou.jpg"},
+    {"title":"世界城市穿梭","type":"文旅动画","description":"个人试验","date":"2025-10-13","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/shijie_chengshi.mp4","poster":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/posters/shijie_chengshi.jpg"},
+    {"title":"蝶舞・狐吟・鲤游：双姝的轮回绮梦","type":"艺术","description":"个人试验","date":"2025-10-12","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/diewu_huyin.mp4","poster":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/posters/diewu_huyin.jpg"},
+    {"title":"平镜AI","type":"故事","description":"海螺AI-海龟汤大赛","date":"2025-09-02","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/pingjing_ai.mp4","poster":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/posters/pingjing_ai.jpg"},
+    {"title":"猫猫带你逛上海奥赛展","type":"文旅动画","description":"个人试验","date":"2025-08-30","video_url":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/videos/maomao_aosai.mp4","poster":"https://badge-static-1304293304.cos.ap-guangzhou.myqcloud.com/posters/maomao_aosai.jpg"}
   ];
 
   function renderVideos(videos) {
@@ -1238,9 +1298,10 @@ function closeNav() {
       const card = document.createElement('div');
       card.className = 'video-card reveal';
       card.innerHTML = `
-        <div class="video-player-wrap">
-          <video preload="metadata" src="${v.video_url || ''}" poster="" playsinline></video>
-          <div class="play-overlay" onclick="this.style.display='none';this.previousElementSibling.play();">
+        <div class="video-player-wrap" data-src="${v.video_url || ''}">
+          <img class="poster-img" src="${v.poster || ''}" alt="${v.title}" loading="lazy">
+          <video preload="none" playsinline></video>
+          <div class="play-overlay">
             <div class="play-icon"></div>
           </div>
         </div>
@@ -1253,18 +1314,57 @@ function closeNav() {
       `;
       grid.appendChild(card);
     });
+
+    grid.querySelectorAll('.video-player-wrap').forEach(wrap => {
+      wrap.addEventListener('click', () => openFullscreen(wrap.dataset.src));
+    });
+
     const revealObs = new IntersectionObserver((entries) => {
       entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.classList.add('visible');
-          revealObs.unobserve(e.target);
-        }
+        if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); }
       });
     }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
     grid.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
   }
 
-  // Try fetch first, fallback to inline data
+  // Fullscreen player
+  const fsOverlay = document.getElementById('videoFullscreen');
+  const fsVideo = document.getElementById('fullscreenVideo');
+  const fsClose = document.getElementById('videoFullscreenClose');
+  const fsPlayPause = document.getElementById('fsPlayPause');
+
+  function openFullscreen(src) {
+    if (!src) return;
+    fsVideo.src = src;
+    fsOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    fsVideo.play().catch(() => {});
+    updatePlayBtn();
+  }
+
+  function closeFullscreen() {
+    fsVideo.pause();
+    fsVideo.src = '';
+    fsOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function updatePlayBtn() {
+    fsPlayPause.innerHTML = fsVideo.paused ? '▶' : '⏸';
+  }
+
+  fsClose.addEventListener('click', closeFullscreen);
+  fsOverlay.addEventListener('click', (e) => { if (e.target === fsOverlay) closeFullscreen(); });
+  fsPlayPause.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (fsVideo.paused) fsVideo.play().catch(()=>{}); else fsVideo.pause();
+  });
+  fsVideo.addEventListener('play', updatePlayBtn);
+  fsVideo.addEventListener('pause', updatePlayBtn);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && fsOverlay.classList.contains('active')) closeFullscreen();
+  });
+
   fetch('api/videos.json')
     .then(r => r.ok ? r.json() : Promise.reject('fetch failed'))
     .then(videos => renderVideos(videos))
